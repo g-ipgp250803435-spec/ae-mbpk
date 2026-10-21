@@ -6,7 +6,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(process.cwd(), 'index.html'),
-        account: resolve(process.cwd(), 'account.html')
+        account: resolve(process.cwd(), 'account.html'),
+        misiBerdikari: resolve(process.cwd(), 'misi-berdikari.html')
       }
     }
   }

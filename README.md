@@ -96,3 +96,58 @@ Fungsi portal:
 - Kelas yang masih mempunyai profil tidak boleh dipadam. Padam profil satu demi satu hanya jika benar-benar diperlukan.
 - Dialog `prompt` dan `confirm` menggunakan dialog natif pelayar untuk prototaip; ia boleh diganti kemudian dengan modal aksesibel yang disepadukan dengan reka bentuk ae-MBPK.
 - Migrasi perlu disemak dan diuji pada projek Supabase yang betul sebelum penggunaan sebenar.
+
+
+## Peringkat 2.2 — Integrasi Misi Berdikari
+
+### Langkah pemasangan
+1. Sandarkan projek semasa dan kekalkan `.env.local` anda (jangan komit fail itu).
+2. Gantikan/tambah fail daripada pakej ini ke folder projek anda.
+3. Dalam Supabase SQL Editor, jalankan `supabase/migrations/202610210003_game_session_sync.sql` selepas migrasi Peringkat 2.1.
+4. Jalankan `npm install` kemudian `npm run dev`.
+5. Log masuk ke `/account.html`, pilih kelas dan cipta/gunakan profil samaran. Klik **Mainkan Misi Berdikari** pada profil itu.
+6. Lengkapkan satu misi; semak banner penyegerakan dan senarai **Rekod permainan terkini** pada Portal Guru.
+7. Jika lulus di localhost, push perubahan ke GitHub dan tunggu deployment Vercel selesai. Pastikan env vars Production kekal disediakan.
+
+### Apa yang direkodkan
+Sesi selesai menyimpan permainan, kemahiran, percubaan, petunjuk, tempoh (jika boleh dikira), bilangan langkah selesai, langkah tanpa petunjuk/dengan bantuan, kesilapan dan ringkasan langkah. `score` sengaja `NULL`: melengkapkan permainan bukan bukti automatik penguasaan kemahiran.
+
+### Perlindungan duplikasi dan akses
+Setiap larian mempunyai `client_session_id` UUID yang stabil. Indeks unik menghalang sesi yang sama disimpan dua kali apabila percubaan ulang berlaku. Polisi RLS sedia ada dikekalkan; insert memerlukan `created_by = auth.uid()` dan murid dalam kelas yang dimiliki guru semasa. Jangan tambah polisi RLS umum yang membenarkan semua pengguna authenticated mengakses semua sesi.
+
+### Ujian yang perlu dilakukan
+- Buka game dari butang profil murid dan pastikan banner menyebut profil samaran yang betul.
+- Lengkapkan satu misi dan semak satu baris baru dalam Portal Guru.
+- Refresh Portal Guru dan pastikan rekod kekal.
+- Klik cuba simpan semula selepas simulasi ralat rangkaian; pastikan tiada rekod berganda.
+- Buka game tanpa `studentId`: game patut boleh dimainkan setempat tetapi tidak mendakwa rekod disegerakkan.
+- Log masuk Guru B dan pastikan rekod Guru A tidak dipaparkan.
+- Uji export CSV pada kelas yang mempunyai rekod.
+
+### Had
+Rekod dihantar pada penghujung misi sahaja; kemajuan yang belum selesai kekal pada localStorage peranti. Jika pelayar ditutup sebelum misi selesai, sesi itu belum dihantar ke Supabase. Ujian sebenar masih perlu dibuat pada projek Supabase/Vercel anda. Gunakan profil samaran sahaja sehingga keperluan privasi, kebenaran, pengekalan dan pemadaman data disahkan.
+
+
+## Peringkat 2.3 — Dashboard Analitik Guru
+
+Dashboard analitik ditambah pada Portal Guru dan menggunakan jadual `game_sessions` sedia ada. Tiada migrasi SQL tambahan diperlukan untuk dashboard ini.
+
+### Fungsi
+- KPI sesi direkodkan, murid dengan rekod, jumlah petunjuk dan langkah selesai (jika wujud dalam `result_summary`).
+- Penapis murid, permainan dan tempoh (7/30/90 hari atau semua rekod).
+- Ringkasan sesi mengikut permainan dan kemahiran, trend sesi 7 hari, sejarah sesi dan eksport CSV.
+- Data dibaca melalui Supabase dengan RLS sedia ada; hanya murid dalam kelas yang dipilih diminta.
+
+### Pemasangan
+1. Sandarkan projek semasa.
+2. Gabungkan fail pakej ini ke dalam projek Vite sedia ada. Kekalkan `.env.local`.
+3. Tiada SQL baharu diperlukan untuk Peringkat 2.3.
+4. Jalankan `npm install` kemudian `npm run dev`. Buka Portal Guru, log masuk dan pilih kelas.
+5. Uji eksport CSV dan pengasingan data sebelum push ke GitHub/Vercel.
+
+### Batasan dan interpretasi
+- Dashboard merumuskan hanya sesi yang berjaya disimpan ke `game_sessions`.
+- Paparan sejarah dihadkan kepada 100 rekod; query analitik memuatkan maksimum 5,000 sesi bagi kelas dipilih.
+- Rekod lama mungkin tiada beberapa medan dalam `result_summary`; paparan akan menunjukkan nilai sifar/tiada data jika maklumat itu tidak dihantar oleh permainan.
+- Jumlah petunjuk atau percubaan bukan skor penguasaan dan tidak boleh digunakan sendirian untuk melabel murid. Guru perlu menafsirkan rekod dalam konteks pengajaran.
+- Binaan produksi, ujian live Supabase dan deployment Vercel perlu dilakukan dalam persekitaran pemilik projek; tidak ditandakan lulus di sini.

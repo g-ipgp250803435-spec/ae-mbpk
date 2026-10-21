@@ -1,3 +1,4 @@
+import './analytics.js';
 import { supabase, isSupabaseConfigured } from './supabase.js';
 
 const $ = (id) => document.getElementById(id);
@@ -7,6 +8,7 @@ let currentUser = null;
 let selectedClassId = null;
 let classes = [];
 let students = [];
+let gameSessions = [];
 const busyIds = new Set();
 
 function message(node, text, kind = '') {
@@ -20,9 +22,11 @@ function setSignedInUI(user) {
   $('className').disabled = !user;
   $('sessionState').textContent = user ? 'Aktif' : 'Log keluar';
   if (!user) {
-    classes = []; students = []; selectedClassId = null;
-    renderClasses(); renderStudents();
+    classes = []; students = []; selectedClassId = null; gameSessions = [];
+    renderClasses(); renderStudents(); renderSessions();
     $('studentArea').classList.add('hidden');
+    $('sessionsArea').classList.add('hidden'); gameSessions = []; renderSessions();
+    window.aeMbpkAnalytics?.setContext({ user: null, classId: null, students: [] });
     $('classCount').textContent = '0'; $('studentCount').textContent = '0';
   }
 }
@@ -58,8 +62,8 @@ async function loadClasses() {
   } else if (classes.length) {
     await selectClass(classes[0].id);
   } else {
-    selectedClassId = null; students = []; renderStudents();
-    $('studentArea').classList.add('hidden');
+    selectedClassId = null; students = []; gameSessions = []; renderStudents(); renderSessions();
+    $('studentArea').classList.add('hidden'); $('sessionsArea').classList.add('hidden');
     $('studentCount').textContent = '0';
     message(dataStatus, 'Akaun aktif. Tambah kelas pertama anda.');
   }
@@ -100,6 +104,9 @@ async function selectClass(id) {
   students = data || [];
   $('studentCount').textContent = String(students.length);
   renderStudents();
+  $('sessionsArea').classList.remove('hidden');
+  await loadGameSessions(id);
+  window.aeMbpkAnalytics?.setContext({ user: currentUser, classId: selectedClassId, students });
   message(dataStatus, `Kelas “${selected.name}” dipilih. ${students.length} profil dimuatkan.`, 'success');
 }
 function renderStudents() {
@@ -117,6 +124,7 @@ function renderStudents() {
     info.append(title, small);
     const actions = document.createElement('div'); actions.className = 'item-actions';
     actions.append(
+      makeButton('Mainkan Misi Berdikari', 'btn game', () => { window.location.href = `/misi-berdikari.html?studentId=${encodeURIComponent(student.id)}`; }, `Mainkan Misi Berdikari untuk ${student.display_name}`),
       makeButton('Edit', 'btn', () => editStudent(student), `Edit profil ${student.display_name}`),
       makeButton('Padam', 'btn danger', () => deleteStudent(student), `Padam profil ${student.display_name}`)
     );
@@ -214,6 +222,44 @@ async function deleteStudent(student) {
   } catch (error) { message(dataStatus, friendlyError(error), 'error'); }
   finally { setBusy(`student-${student.id}`, false); }
 }
+async function loadGameSessions(classId) {
+  const list = $('sessionsList');
+  gameSessions = [];
+  renderSessions();
+  if (!supabase || !currentUser || selectedClassId !== classId) return;
+  const studentIds = students.map(s => s.id);
+  if (!studentIds.length) { renderSessions(); return; }
+  const { data, error } = await supabase.from('game_sessions')
+    .select('id, student_id, game_slug, skill_code, attempts, hints_used, duration_seconds, result_summary, completed_at, created_at, client_session_id')
+    .in('student_id', studentIds).order('created_at', { ascending: false }).limit(100);
+  if (error) { message(dataStatus, friendlyError(error), 'error'); return; }
+  if (selectedClassId !== classId) return;
+  gameSessions = data || [];
+  renderSessions();
+}
+function renderSessions() {
+  const list = $('sessionsList'); if (!list) return; list.replaceChildren();
+  if (!gameSessions.length) { const p=document.createElement('p');p.className='muted';p.textContent=selectedClassId?'Belum ada sesi permainan yang disegerakkan untuk kelas ini.':'Pilih kelas untuk memuatkan rekod.';list.append(p);return; }
+  for (const session of gameSessions) {
+    const student = students.find(s => s.id === session.student_id);
+    const row=document.createElement('div');row.className='session-row';
+    const info=document.createElement('div');const title=document.createElement('strong');title.textContent=student?.display_name||'Profil murid';
+    const summary=session.result_summary||{};const detail=document.createElement('small');
+    const date=session.completed_at||session.created_at;
+    const readableDate=date?new Date(date).toLocaleString('ms-MY'):'Tarikh tidak tersedia';
+    detail.textContent=`${session.skill_code||session.game_slug} · ${summary.steps_completed??'—'}/${summary.total_steps??'—'} langkah · ${session.attempts} percubaan · ${session.hints_used} petunjuk`;
+    info.append(title,detail);const meta=document.createElement('span');meta.className='session-meta';meta.textContent=readableDate;row.append(info,meta);list.append(row);
+  }
+}
+function exportGameSessions() {
+  if (!gameSessions.length) return message(dataStatus, 'Tiada rekod sesi untuk dieksport.', 'error');
+  const headers=['tarikh','nama_samaran','permainan','kemahiran','langkah_selesai','jumlah_langkah','langkah_mandiri','langkah_dengan_bantuan','percubaan','petunjuk','tempoh_saat'];
+  const rows=gameSessions.map(s=>{const r=s.result_summary||{};return [s.completed_at||s.created_at,students.find(x=>x.id===s.student_id)?.display_name||'',s.game_slug,s.skill_code||'',r.steps_completed??'',r.total_steps??'',r.independent_steps??'',r.supported_steps??'',s.attempts??'',s.hints_used??'',s.duration_seconds??'']});
+  const csv=[headers,...rows].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='ae-mbpk-rekod-sesi.csv';document.body.append(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+$('exportSessionsBtn').addEventListener('click', exportGameSessions);
+
 async function refreshSession() {
   if (!isSupabaseConfigured || !supabase) return;
   const { data, error } = await supabase.auth.getSession();
