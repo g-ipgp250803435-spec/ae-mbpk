@@ -67,3 +67,32 @@ Senarai semak manual:
 - Cuba baca/tulis rekod tanpa sesi; akses patut ditolak.
 - Refresh halaman dan pastikan sesi auth kekal jika konfigurasi membenarkan.
 - Uji pada telefon, papan kekunci dan pembaca skrin asas.
+
+## Peringkat 2.1 — Edit dan padam kelas/profil
+
+1. Pastikan migrasi awal `202610210001_initial_schema.sql` sudah dijalankan.
+2. Jalankan migrasi baharu `supabase/migrations/202610210002_phase21_management_safety.sql` dalam Supabase SQL Editor.
+3. Commit dan push perubahan projek ke GitHub, kemudian tunggu deployment Vercel selesai.
+4. Uji dengan akaun Guru A dan Guru B yang berasingan.
+
+Fungsi portal:
+- Edit nama kelas dan nama paparan/kod profil menggunakan dialog input pelayar.
+- Padam kelas hanya apabila tiada profil murid; semakan ini turut dikuatkuasakan oleh trigger pangkalan data.
+- Padam profil murid memerlukan pengesahan yang menerangkan bahawa sesi permainan berkaitan turut dipadam secara kekal.
+- Semua perubahan menggunakan Supabase client yang disahkan; RLS kekal sebagai kawalan akses sebenar. Butang tersembunyi sahaja bukan kawalan keselamatan.
+
+### Ujian manual Peringkat 2.1
+- Edit nama kelas dan pastikan perubahan kekal selepas refresh.
+- Cuba padam kelas yang masih mempunyai profil: UI patut menolak tindakan tersebut.
+- Jika menghantar permintaan DELETE kelas secara langsung ketika kelas mempunyai profil, trigger SQL patut menolaknya.
+- Edit nama paparan/kod profil dan pastikan perubahan kekal selepas refresh.
+- Padam profil demo dan pastikan profil hilang; fahami bahawa rekod `game_sessions` berkaitan turut dipadam.
+- Batalkan setiap dialog pengesahan dan pastikan tiada data berubah.
+- Log masuk sebagai Guru B dan pastikan kelas/profil Guru A tidak boleh diubah atau dipadam.
+- Uji nama kosong dan nilai yang melebihi had aksara.
+
+### Nota keselamatan
+- Memadam profil murid adalah tindakan kekal dan memadam sesi berkaitan kerana foreign key `ON DELETE CASCADE` pada `game_sessions.student_id`.
+- Kelas yang masih mempunyai profil tidak boleh dipadam. Padam profil satu demi satu hanya jika benar-benar diperlukan.
+- Dialog `prompt` dan `confirm` menggunakan dialog natif pelayar untuk prototaip; ia boleh diganti kemudian dengan modal aksesibel yang disepadukan dengan reka bentuk ae-MBPK.
+- Migrasi perlu disemak dan diuji pada projek Supabase yang betul sebelum penggunaan sebenar.

@@ -7,6 +7,7 @@ let currentUser = null;
 let selectedClassId = null;
 let classes = [];
 let students = [];
+const busyIds = new Set();
 
 function message(node, text, kind = '') {
   node.textContent = text;
@@ -29,8 +30,20 @@ function friendlyError(error) {
   const msg = error?.message || 'Operasi tidak berjaya. Cuba lagi.';
   if (/Invalid login credentials/i.test(msg)) return 'E-mel atau kata laluan tidak tepat.';
   if (/Email not confirmed/i.test(msg)) return 'Sahkan e-mel melalui pautan yang dihantar sebelum log masuk.';
-  if (/row-level security|permission denied/i.test(msg)) return 'Akses ditolak oleh polisi keselamatan. Semak migrasi SQL dan pemilikan kelas.';
+  if (/row-level security|permission denied/i.test(msg)) return 'Akses ditolak oleh polisi keselamatan. Semak polisi RLS dan pastikan anda pemilik rekod.';
+  if (/cannot delete a class that still has students/i.test(msg)) return 'Kelas ini masih mempunyai profil murid. Padam profil murid terlebih dahulu jika memang perlu.';
+  if (/violates check constraint/i.test(msg)) return 'Maklumat tidak memenuhi syarat panjang atau format. Semak nilai dan cuba lagi.';
   return msg;
+}
+function setBusy(key, isBusy) {
+  if (isBusy) busyIds.add(key); else busyIds.delete(key);
+}
+function makeButton(label, className, onClick, ariaLabel) {
+  const button = document.createElement('button');
+  button.type = 'button'; button.className = className; button.textContent = label;
+  if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
+  button.addEventListener('click', onClick);
+  return button;
 }
 async function loadClasses() {
   if (!currentUser || !supabase) return;
@@ -60,15 +73,15 @@ function renderClasses() {
   }
   for (const item of classes) {
     const row = document.createElement('div'); row.className = 'item';
-    const info = document.createElement('div');
+    const info = document.createElement('div'); info.className = 'item-info';
     const title = document.createElement('strong'); title.textContent = item.name;
     const small = document.createElement('small'); small.textContent = item.id === selectedClassId ? 'Kelas dipilih' : 'Pilih untuk urus profil';
     info.append(title, small);
-    const button = document.createElement('button'); button.type = 'button';
-    button.className = item.id === selectedClassId ? 'btn primary' : 'btn';
-    button.textContent = item.id === selectedClassId ? 'Dipilih' : 'Buka';
-    button.addEventListener('click', () => selectClass(item.id));
-    row.append(info, button); list.append(row);
+    const actions = document.createElement('div'); actions.className = 'item-actions';
+    const open = makeButton(item.id === selectedClassId ? 'Dipilih' : 'Buka', item.id === selectedClassId ? 'btn primary' : 'btn', () => selectClass(item.id));
+    const edit = makeButton('Edit', 'btn', () => editClass(item), `Edit kelas ${item.name}`);
+    const remove = makeButton('Padam', 'btn danger', () => deleteClass(item), `Padam kelas ${item.name}`);
+    actions.append(open, edit, remove); row.append(info, actions); list.append(row);
   }
 }
 async function selectClass(id) {
@@ -82,6 +95,8 @@ async function selectClass(id) {
     .select('id, display_name, learner_code, created_at')
     .eq('class_id', id).order('created_at', { ascending: false });
   if (error) { message(dataStatus, friendlyError(error), 'error'); return; }
+  // Ignore late responses if the user switched class while the request was running.
+  if (selectedClassId !== id) return;
   students = data || [];
   $('studentCount').textContent = String(students.length);
   renderStudents();
@@ -96,11 +111,108 @@ function renderStudents() {
   }
   for (const student of students) {
     const row = document.createElement('div'); row.className = 'item';
-    const info = document.createElement('div');
+    const info = document.createElement('div'); info.className = 'item-info';
     const title = document.createElement('strong'); title.textContent = student.display_name;
     const small = document.createElement('small'); small.textContent = student.learner_code ? `Kod: ${student.learner_code}` : 'Profil samaran';
-    info.append(title, small); row.append(info); list.append(row);
+    info.append(title, small);
+    const actions = document.createElement('div'); actions.className = 'item-actions';
+    actions.append(
+      makeButton('Edit', 'btn', () => editStudent(student), `Edit profil ${student.display_name}`),
+      makeButton('Padam', 'btn danger', () => deleteStudent(student), `Padam profil ${student.display_name}`)
+    );
+    row.append(info, actions); list.append(row);
   }
+}
+async function editClass(item) {
+  if (!currentUser || !supabase || busyIds.has(`class-${item.id}`)) return;
+  const proposed = window.prompt('Masukkan nama baharu untuk kelas ini:', item.name);
+  if (proposed === null) return;
+  const name = proposed.trim();
+  if (!name) return message(dataStatus, 'Nama kelas tidak boleh kosong.', 'error');
+  if (name.length > 100) return message(dataStatus, 'Nama kelas mestilah 100 aksara atau kurang.', 'error');
+  if (name === item.name) return;
+  setBusy(`class-${item.id}`, true);
+  try {
+    const { data, error } = await supabase.from('classes').update({ name })
+      .eq('id', item.id).select('id, name, created_at').maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('Tiada rekod dikemas kini. Sahkan bahawa anda masih mempunyai akses kepada kelas ini.');
+    classes = classes.map(c => c.id === item.id ? data : c);
+    $('selectedClassName').textContent = selectedClassId === item.id ? data.name : $('selectedClassName').textContent;
+    renderClasses();
+    message(dataStatus, `Nama kelas dikemas kini kepada “${data.name}”.`, 'success');
+  } catch (error) { message(dataStatus, friendlyError(error), 'error'); }
+  finally { setBusy(`class-${item.id}`, false); }
+}
+async function deleteClass(item) {
+  if (!currentUser || !supabase || busyIds.has(`class-${item.id}`)) return;
+  // A class with students is intentionally not deleted, preventing accidental cascade deletion.
+  const { count, error: countError } = await supabase.from('students').select('id', { count: 'exact', head: true }).eq('class_id', item.id);
+  if (countError) return message(dataStatus, friendlyError(countError), 'error');
+  if ((count || 0) > 0) {
+    return message(dataStatus, `Kelas “${item.name}” mempunyai ${count} profil murid. Untuk mengelakkan kehilangan data, padam profil yang berkaitan dahulu jika memang diperlukan.`, 'error');
+  }
+  const confirmed = window.confirm(`Padam kelas “${item.name}”? Tindakan ini tidak boleh dibuat asal.`);
+  if (!confirmed) return;
+  setBusy(`class-${item.id}`, true);
+  try {
+    const { data, error } = await supabase.from('classes').delete().eq('id', item.id).select('id');
+    if (error) throw error;
+    if (!data?.length) throw new Error('Kelas tidak dipadam. Rekod mungkin sudah tiada atau akses tidak dibenarkan.');
+    classes = classes.filter(c => c.id !== item.id);
+    if (selectedClassId === item.id) { selectedClassId = null; students = []; }
+    $('classCount').textContent = String(classes.length);
+    $('studentCount').textContent = String(students.length);
+    renderClasses(); renderStudents();
+    if (classes.length) await selectClass(classes[0].id);
+    else { $('studentArea').classList.add('hidden'); message(dataStatus, `Kelas “${item.name}” dipadam. Tiada kelas lain dalam akaun ini.` , 'success'); }
+    if (classes.length) message(dataStatus, `Kelas “${item.name}” dipadam.`, 'success');
+  } catch (error) { message(dataStatus, friendlyError(error), 'error'); }
+  finally { setBusy(`class-${item.id}`, false); }
+}
+async function editStudent(student) {
+  if (!currentUser || !supabase || busyIds.has(`student-${student.id}`)) return;
+  const proposedName = window.prompt('Nama paparan atau nama samaran murid:', student.display_name);
+  if (proposedName === null) return;
+  const display_name = proposedName.trim();
+  if (!display_name) return message(dataStatus, 'Nama paparan tidak boleh kosong.', 'error');
+  if (display_name.length > 80) return message(dataStatus, 'Nama paparan mestilah 80 aksara atau kurang.', 'error');
+  const proposedCode = window.prompt('Kod dalaman pilihan (kosongkan jika tiada):', student.learner_code || '');
+  if (proposedCode === null) return;
+  const learner_code = proposedCode.trim() || null;
+  if (learner_code && learner_code.length > 32) return message(dataStatus, 'Kod dalaman mestilah 32 aksara atau kurang.', 'error');
+  if (display_name === student.display_name && learner_code === (student.learner_code || null)) return;
+  setBusy(`student-${student.id}`, true);
+  try {
+    const { data, error } = await supabase.from('students').update({ display_name, learner_code })
+      .eq('id', student.id).eq('class_id', selectedClassId)
+      .select('id, display_name, learner_code, created_at').maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('Profil tidak dikemas kini. Sahkan kelas yang dipilih dan akses anda.');
+    students = students.map(s => s.id === student.id ? data : s);
+    renderStudents();
+    message(dataStatus, `Profil “${data.display_name}” berjaya dikemas kini.`, 'success');
+  } catch (error) { message(dataStatus, friendlyError(error), 'error'); }
+  finally { setBusy(`student-${student.id}`, false); }
+}
+async function deleteStudent(student) {
+  if (!currentUser || !supabase || busyIds.has(`student-${student.id}`)) return;
+  const confirmed = window.confirm(
+    `Padam profil “${student.display_name}”?\n\nRekod sesi permainan yang berkaitan juga akan dipadam secara kekal. Tindakan ini tidak boleh dibuat asal.`
+  );
+  if (!confirmed) return;
+  setBusy(`student-${student.id}`, true);
+  try {
+    const { data, error } = await supabase.from('students').delete()
+      .eq('id', student.id).eq('class_id', selectedClassId).select('id');
+    if (error) throw error;
+    if (!data?.length) throw new Error('Profil tidak dipadam. Sahkan kelas yang dipilih dan akses anda.');
+    students = students.filter(s => s.id !== student.id);
+    $('studentCount').textContent = String(students.length);
+    renderStudents();
+    message(dataStatus, `Profil “${student.display_name}” dan rekod sesi berkaitannya telah dipadam.`, 'success');
+  } catch (error) { message(dataStatus, friendlyError(error), 'error'); }
+  finally { setBusy(`student-${student.id}`, false); }
 }
 async function refreshSession() {
   if (!isSupabaseConfigured || !supabase) return;
@@ -175,7 +287,7 @@ $('classForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!currentUser || !supabase) return message(dataStatus, 'Log masuk sebagai guru dahulu.', 'error');
   const name = $('className').value.trim();
-  if (!name) return;
+  if (!name) return message(dataStatus, 'Nama kelas tidak boleh kosong.', 'error');
   const button = $('classForm').querySelector('button'); button.disabled = true;
   try {
     const { data, error } = await supabase.from('classes')
@@ -193,7 +305,8 @@ $('studentForm').addEventListener('submit', async (event) => {
   if (!currentUser || !selectedClassId || !supabase) return message(dataStatus, 'Pilih kelas dan pastikan anda log masuk.', 'error');
   const display_name = $('studentName').value.trim();
   const learner_code = $('studentCode').value.trim() || null;
-  if (!display_name) return;
+  if (!display_name) return message(dataStatus, 'Nama paparan tidak boleh kosong.', 'error');
+  if (display_name.length > 80 || (learner_code && learner_code.length > 32)) return message(dataStatus, 'Semak panjang nama (maksimum 80) dan kod (maksimum 32 aksara).', 'error');
   const button = $('studentForm').querySelector('button'); button.disabled = true;
   try {
     const { data, error } = await supabase.from('students')
@@ -211,7 +324,6 @@ if (isSupabaseConfigured) {
   $('configNotice').classList.add('hidden');
   message(dataStatus, 'Supabase dikonfigurasi. Menyemak sesi…');
   supabase.auth.onAuthStateChange((_event, session) => {
-    // Defer async database work to avoid doing it inside the auth callback.
     queueMicrotask(() => {
       const user = session?.user || null;
       if (user?.id !== currentUser?.id) {
