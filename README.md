@@ -1,95 +1,69 @@
-# ae-MBPK — Peringkat 1
+# ae-MBPK — Peringkat 2 (Auth + kelas)
 
-Prototaip aplikasi web responsif ae-MBPK menggunakan HTML, CSS dan JavaScript vanilla, dengan Vite sebagai alat pembangunan/pembinaan. Reka bentuk prototaip dikekalkan; tiada framework UI, CDN atau API luaran.
+Pakej ini mengekalkan prototaip ae-MBPK dan menambah portal guru awal yang menggunakan Supabase untuk akaun, kelas dan profil murid samaran.
 
-## Ciri dalam prototaip
+## Teknologi
+- Vite untuk pembangunan dan binaan statik.
+- Supabase Auth (e-mel/kata laluan).
+- PostgreSQL dengan Row Level Security (RLS).
+- GitHub untuk kod sumber dan Vercel untuk deployment.
 
-- Dashboard utama ae-MBPK dan navigasi responsif.
-- Ruang murid serta Teacher Studio demo.
-- Katalog permainan dengan carian dan penapis.
-- Pusat pembelajaran, Kenali MBPK dan koleksi ganjaran.
-- Bahasa Melayu / English untuk kandungan yang disokong.
-- Mod gelap, teks besar, kontras tinggi dan kurangkan gerakan.
-- Profil demo setempat dan eksport CSV data demonstrasi.
-- Favicon SVG setempat.
+## 1. Sediakan Supabase
+1. Cipta projek di https://supabase.com/dashboard.
+2. Buka SQL Editor dan jalankan `supabase/migrations/202610210001_initial_schema.sql`.
+3. Dalam Authentication → URL Configuration, tetapkan Site URL kepada URL Vercel anda.
+4. Tambah Redirect URL untuk URL production `/account.html` dan URL localhost `/account.html`.
+5. Semak tetapan pengesahan e-mel. Untuk produksi, sediakan SMTP khusus dan hadkan pendaftaran kepada guru yang diluluskan.
 
-## Keperluan
-
-- Node.js versi LTS yang disokong oleh Vite.
-- Akaun GitHub.
-- Akaun Vercel untuk deployment.
-
-## Jalankan pada komputer
-
+## 2. Konfigurasi tempatan
 ```bash
 npm install
+cp .env.example .env.local
+```
+Edit `.env.local` dan masukkan:
+- `VITE_SUPABASE_URL` — Project URL dari Supabase.
+- `VITE_SUPABASE_PUBLISHABLE_KEY` — publishable key dari Supabase.
+
+Jangan masukkan secret/service_role key ke dalam `.env.local` yang bermula dengan `VITE_`, kod browser, GitHub atau Vercel client environment.
+
+Kemudian jalankan:
+```bash
 npm run dev
 ```
+Buka URL yang dipaparkan, kemudian klik `Portal Guru` atau buka `/account.html`.
 
-Buka URL localhost yang ditunjukkan dalam terminal.
+## 3. Deployment Vercel
+1. Push folder projek ini ke repository GitHub yang disambungkan kepada Vercel.
+2. Dalam Vercel → Project → Settings → Environment Variables, tambah `VITE_SUPABASE_URL` dan `VITE_SUPABASE_PUBLISHABLE_KEY` untuk environment yang diperlukan.
+3. Redeploy selepas mengubah environment variables.
+4. Pastikan Supabase Auth URL Configuration mempunyai domain Vercel production dan URL preview yang benar-benar digunakan.
+5. Jalankan ujian dengan dua akaun guru berasingan: setiap guru hanya boleh melihat kelas dan profil miliknya.
 
-## Semak build produksi secara setempat
+## 4. Ciri yang dilaksanakan dalam portal
+- Daftar akaun guru, log masuk, log keluar dan minta pautan reset kata laluan.
+- Muatkan kelas milik guru, tambah kelas dan pilih kelas.
+- Tambah profil murid menggunakan nama paparan/nama samaran serta kod pilihan.
+- RLS memisahkan rekod berdasarkan guru pemilik kelas.
+- Pautan kembali ke prototaip dan portal guru.
 
+## 5. Had yang mesti difahami
+- Ini ialah asas Peringkat 2, bukan sistem produksi yang telah diaudit.
+- Pengesahan e-mel, SMTP, domain dan polisi pendaftaran mesti dikonfigurasi dalam dashboard Supabase.
+- Portal belum mempunyai jemputan guru, peranan pentadbir institusi, perkongsian kelas, pemadaman kelas/profil dalam UI atau integrasi rekod permainan ke dalam `game_sessions`.
+- `profiles` tidak menyediakan pengurusan peranan admin; jangan anggap sesiapa sebagai admin berdasarkan metadata yang dihantar klien.
+- Nama paparan dan kod murid masih merupakan data peribadi berpotensi. Gunakan nama samaran dan jangan simpan diagnosis, laporan klinikal atau nombor pengenalan.
+- Sebelum penggunaan sebenar, sahkan keperluan institusi, kebenaran yang sesuai, notis privasi, tempoh penyimpanan/pemadaman dan ujian keselamatan.
+
+## 6. Ujian yang boleh dijalankan
 ```bash
 npm run build
 npm run preview
 ```
-
-Vite akan menghasilkan laman statik dalam folder `dist/`.
-
-## GitHub: muat naik projek
-
-1. Cipta repository baharu di GitHub, contohnya `ae-mbpk`.
-2. Muat turun dan ekstrak projek ini.
-3. Buka terminal dalam folder projek.
-4. Jalankan arahan berikut (gantikan URL dengan URL repository anda):
-
-```bash
-git init
-git add .
-git commit -m "Initial ae-MBPK Stage 1 prototype"
-git branch -M main
-git remote add origin https://github.com/USERNAME/ae-mbpk.git
-git push -u origin main
-```
-
-Jika Git belum dipasang, anda juga boleh memuat naik fail melalui butang **Add file → Upload files** pada laman repository GitHub.
-
-## Vercel: deployment melalui GitHub
-
-1. Log masuk ke Vercel.
-2. Pilih **Add New → Project**.
-3. Import repository `ae-mbpk` dari GitHub.
-4. Semak tetapan projek:
-   - Framework Preset: **Vite**
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Install Command: `npm install`
-5. Tekan **Deploy**.
-6. Buka URL deployment dan semak paparan pada telefon serta komputer.
-
-Selepas integrasi, push ke branch yang disambungkan biasanya mencetuskan deployment production baharu; branch lain boleh digunakan untuk preview deployment.
-
-## Had dan privasi prototaip
-
-- Statistik, lencana dan rekod dalam Teacher Studio ialah data demonstrasi, bukan data murid sebenar.
-- Tema, bahasa dan profil demo disimpan secara setempat dalam browser; ia tidak disegerakkan antara peranti.
-- Tiada akaun sebenar, autentikasi, pangkalan data atau backend.
-- Jangan masukkan maklumat sensitif atau diagnosis murid.
-- Kad permainan yang bertanda dalam perancangan ialah placeholder, bukan permainan lengkap.
-- Kandungan pendidikan berkaitan ketidakupayaan, BIM, Braille dan AAC perlu disemak pakar serta pengguna berkaitan sebelum penggunaan rasmi.
-
-## Senarai semak Peringkat 1
-
-- [ ] Jalankan `npm install` dan `npm run build`.
-- [ ] Uji semua navigasi dan modal.
-- [ ] Uji Bahasa Melayu / English.
-- [ ] Uji mod gelap, teks besar, kontras dan gerakan.
-- [ ] Uji carian/penapis permainan dan eksport CSV.
-- [ ] Uji skrin kecil dan besar pada browser sebenar.
-- [ ] Semak URL deployment Vercel.
-- [ ] Sahkan favicon, console browser dan tiada pautan rosak.
-
-## Nota seni bina
-
-Peringkat 1 sengaja menggunakan HTML/CSS/JavaScript vanilla kerana prototaip yang telah disemak dikekalkan tanpa membina semula UI. Peringkat 2 boleh menambah backend (contohnya Supabase) untuk akaun guru, pengurusan kelas, pangkalan data dan penyegerakan. Semua polisi keselamatan dan akses perlu direka sebelum menyimpan data murid sebenar.
+Senarai semak manual:
+- Daftar akaun dan sahkan e-mel.
+- Log masuk, log keluar dan aliran reset kata laluan.
+- Cipta kelas dan profil samaran.
+- Log masuk dengan akaun kedua dan pastikan kelas akaun pertama tidak kelihatan.
+- Cuba baca/tulis rekod tanpa sesi; akses patut ditolak.
+- Refresh halaman dan pastikan sesi auth kekal jika konfigurasi membenarkan.
+- Uji pada telefon, papan kekunci dan pembaca skrin asas.
