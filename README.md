@@ -151,3 +151,119 @@ Dashboard analitik ditambah pada Portal Guru dan menggunakan jadual `game_sessio
 - Rekod lama mungkin tiada beberapa medan dalam `result_summary`; paparan akan menunjukkan nilai sifar/tiada data jika maklumat itu tidak dihantar oleh permainan.
 - Jumlah petunjuk atau percubaan bukan skor penguasaan dan tidak boleh digunakan sendirian untuk melabel murid. Guru perlu menafsirkan rekod dalam konteks pengajaran.
 - Binaan produksi, ujian live Supabase dan deployment Vercel perlu dilakukan dalam persekitaran pemilik projek; tidak ditandakan lulus di sini.
+
+
+## Peringkat 2.4 — Pengukuhan Keselamatan dan Privasi
+
+Lihat `SECURITY_TEST_PLAN.md` untuk pemasangan, ujian manual, privasi dan batasan.
+
+1. Sandarkan projek dan pangkalan data.
+2. Jalankan `supabase/migrations/202610210005_security_hardening.sql` selepas migrasi terdahulu.
+3. Jalankan `supabase/tests/202610210005_security_audit.sql` untuk menyemak RLS, grants dan polisi sesi.
+4. Uji dua akaun guru, akses terus melalui API, percubaan memasukkan sesi untuk murid guru lain dan pencegahan sesi pendua.
+5. Semak pada localhost dan Vercel. Audit SQL bukan audit keselamatan penuh.
+
+
+## Peringkat 3 — Pusat Gamifikasi Modular
+
+Rujuk `PHASE3_README.md` untuk modul katalog, pemasangan dan batasan.
+
+
+## Peringkat 3.1 — Sistem Modul Permainan Bersepadu
+
+Rujuk `PHASE3_1_README.md` untuk Game Registry, kontrak sesi v1, pemasangan dan ujian.
+
+
+## Peringkat 3.2 — Integrasi permainan dengan Portal Guru
+
+Rujuk `PHASE3_2_README.md` untuk pintasan profil murid, sesi Braille lima soalan dan pengesahan rekod.
+
+
+## Peringkat 3.3 — Profil Aksesibiliti
+
+Rujuk `PHASE3_3_README.md` untuk pemasangan, tetapan, privasi dan batasan.
+
+
+## Peringkat 3.4 — Tetapan aksesibiliti pada profil murid
+
+Rujuk `PHASE3_4_README.md` dan migrasi `202610210006_accessibility_preferences.sql`.
+
+
+## Peringkat 3.5 — Integrasi tetapan aksesibiliti
+
+Rujuk `PHASE3_5_README.md` untuk perubahan kawalan audio, fokus papan kekunci dan semakan manual.
+
+
+## Peringkat 3.6 — Papan Pemuka Analitik Pembelajaran Bersepadu
+
+Rujuk `PHASE3_6_README.md`. Tiada migrasi SQL baharu diperlukan.
+
+
+## Peringkat 3.7 — Sistem Cadangan Aktiviti Susulan Diperibadikan
+
+Rujuk `PHASE3_7_README.md`. Tiada migrasi SQL baharu diperlukan.
+
+
+## Peringkat 3.8 — Rekod pelaksanaan aktiviti susulan
+
+Rujuk `PHASE3_8_README.md` dan migrasi `supabase/migrations/202610210007_followup_plans.sql`.
+
+
+## Peringkat 3.9 — Laporan kemajuan dan evidens
+
+Rujuk `PHASE3_9_README.md`. Tiada migrasi SQL baharu diperlukan.
+
+
+## Peringkat 4 — Pengukuhan kualiti, keselamatan dan penerbitan
+
+Rujuk `PHASE4_README.md`. Jalankan `npm run check:release` sebelum `npm run build`.
+
+
+## Peringkat 4.1 — Audit keselamatan dan pengesahan akses
+
+Rujuk `PHASE4_1_README.md` dan jalankan SQL baca-sahaja `supabase/tests/202610210008_security_audit_readonly.sql` selepas menyemak bahawa migrasi berkaitan telah diterapkan.
+
+
+## Peringkat 4 — Finalisasi kualiti dan penerbitan
+
+Rujuk `PHASE4_FINAL_README.md`. Jalankan `npm run check:release`, `npm run check:a11y:static`, `node test-game-session.mjs`, `npm run build`, kemudian `npm run preview`.
+
+
+## Portal Guru & Profil Pemain UI Polish
+
+Rujuk `PORTAL_UI_POLISH_README.md` untuk pemasangan dan senarai ujian.
+
+
+## KataQuest dan NomborNinja
+
+Dua modul permainan interaktif kini tersedia dalam katalog ae-MBPK:
+
+- **KataQuest** (`/kataquest.html`): kenal suku kata, susun suku kata untuk membina perkataan, serta baca dan padan perkataan Bahasa Melayu. Menyediakan tahap Asas, Pertengahan dan Pengukuhan, ilustrasi SVG setempat, audio sebutan pilihan, petunjuk bertahap, lencana dan ringkasan sesi.
+- **NomborNinja** (`/nombor-ninja.html`): kira objek boleh sentuh, banding kumpulan dan latih tambah/tolak. Menyediakan julat 1–5, 1–10 dan 1–20, petunjuk bertahap, audio pilihan, lencana dan ringkasan sesi.
+
+Dalam Portal Guru, pilih profil murid dan gunakan butang permainan yang sepadan untuk membuka modul dengan `studentId`; ini membolehkan modul mengesahkan konteks murid melalui Supabase/RLS. Kedua-duanya menggunakan `src/learning-game-runtime.js` untuk model rekod sesi yang sama dan hanya cuba menyegerakkan rekod apabila guru log masuk serta profil murid yang dipilih dapat disahkan melalui Supabase/RLS. Jika konteks itu tiada, permainan masih boleh dimainkan setempat dan tidak menghantar rekod ke pelayan. Skor sesi ialah evidens latihan, bukan diagnosis atau bukti keberkesanan.
+
+Semak integrasi dengan `npm run check:games`.
+
+
+## UI refinement: Braille, AAC, icons and navigation
+
+Rujuk `UI_REFINEMENT_README.md` untuk ringkasan perubahan dan ujian.
+
+
+## Header icons and NomborNinja dojo upgrade
+
+See `NINJA_ICONS_UPGRADE_NOTES.md` for details and verification limits.
+
+
+## Learning Centre WOW upgrade
+
+The latest dashboard, search, favourites, local progress, learning pathways, insight cards and reward logic are documented in `LEARNING_CENTER_WOW_RELEASE_NOTES.md`. Run `npm run check:progress` and `npm run check:ui` with the other static checks.
+
+## Pusat Sumber Pendidikan Inklusif
+Pusat Pembelajaran kini bukan katalog permainan. Buka `/learning-center.html` untuk Braille, BIM, AAC, Kit Guru dan Glosari. Rujuk `RESOURCE_CENTRE_README.md` untuk skop, sumber, pemasangan dan batasan.
+
+
+## Pusat Sumber Pendidikan Inklusif — pengembangan kandungan
+
+Lihat `RESOURCE_CENTRE_WOW_RELEASE_NOTES.md` untuk perubahan kandungan, interaksi dan batas pengesahan. Jalankan `npm run check:resources` untuk ujian khusus Pusat Pembelajaran.

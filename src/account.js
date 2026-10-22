@@ -76,8 +76,8 @@ function renderClasses() {
     list.append(p); return;
   }
   for (const item of classes) {
-    const row = document.createElement('div'); row.className = 'item';
-    const info = document.createElement('div'); info.className = 'item-info';
+    const row = document.createElement('div'); row.className = 'item student-item';
+    const info = document.createElement('div'); info.className = 'item-info student-info';
     const title = document.createElement('strong'); title.textContent = item.name;
     const small = document.createElement('small'); small.textContent = item.id === selectedClassId ? 'Kelas dipilih' : 'Pilih untuk urus profil';
     info.append(title, small);
@@ -117,14 +117,22 @@ function renderStudents() {
     list.append(p); return;
   }
   for (const student of students) {
-    const row = document.createElement('div'); row.className = 'item';
-    const info = document.createElement('div'); info.className = 'item-info';
+    const row = document.createElement('div'); row.className = 'item student-item';
+    const info = document.createElement('div'); info.className = 'item-info student-info';
     const title = document.createElement('strong'); title.textContent = student.display_name;
     const small = document.createElement('small'); small.textContent = student.learner_code ? `Kod: ${student.learner_code}` : 'Profil samaran';
     info.append(title, small);
     const actions = document.createElement('div'); actions.className = 'item-actions';
     actions.append(
       makeButton('Mainkan Misi Berdikari', 'btn game', () => { window.location.href = `/misi-berdikari.html?studentId=${encodeURIComponent(student.id)}`; }, `Mainkan Misi Berdikari untuk ${student.display_name}`),
+      makeButton('Mainkan KataQuest', 'btn game', () => { window.location.href = `/kataquest.html?studentId=${encodeURIComponent(student.id)}`; }, `Mainkan KataQuest untuk ${student.display_name}`),
+      makeButton('Mainkan NomborNinja', 'btn game', () => { window.location.href = `/nombor-ninja.html?studentId=${encodeURIComponent(student.id)}`; }, `Mainkan NomborNinja untuk ${student.display_name}`),
+      makeButton('Dunia Emosi', 'btn game', () => { window.location.href = `/dunia-emosi.html?studentId=${encodeURIComponent(student.id)}`; }, `Buka Dunia Emosi untuk ${student.display_name}`),
+      makeButton('Langkah Demi Langkah', 'btn game', () => { window.location.href = `/langkah-demi-langkah.html?studentId=${encodeURIComponent(student.id)}`; }, `Buka Langkah Demi Langkah untuk ${student.display_name}`),
+      makeButton('Tangan Berbicara (BIM)', 'btn game', () => { window.location.href = `/tangan-berbicara.html?studentId=${encodeURIComponent(student.id)}`; }, `Buka Tangan Berbicara untuk ${student.display_name}`),
+      makeButton('Peneroka Braille', 'btn game', () => { window.location.href = `/braille.html?studentId=${encodeURIComponent(student.id)}`; }, `Buka Peneroka Braille untuk ${student.display_name}`),
+      makeButton('Papan Komunikasi', 'btn', () => { window.location.href = `/communication-board.html?studentId=${encodeURIComponent(student.id)}`; }, `Buka Papan Komunikasi untuk ${student.display_name}`),
+      makeButton('Tetapan Aksesibiliti', 'btn', () => { window.location.href = `/accessibility.html?studentId=${encodeURIComponent(student.id)}`; }, `Tetapan aksesibiliti untuk ${student.display_name}`),
       makeButton('Edit', 'btn', () => editStudent(student), `Edit profil ${student.display_name}`),
       makeButton('Padam', 'btn danger', () => deleteStudent(student), `Padam profil ${student.display_name}`)
     );

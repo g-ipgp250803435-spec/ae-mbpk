@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101522">
+<meta name="description" content="Tetapan aksesibiliti dan pengalaman sejagat ae-MBPK.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>Tetapan Aksesibiliti · ae-MBPK</title>
+<style>
+:root{color-scheme:light;--bg:#f2f6fb;--surface:#fff;--text:#182438;--muted:#63728a;--line:#dfe7f1;--accent:#087f68}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:18px clamp(16px,4vw,44px);background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{font-weight:850;font-size:1.15rem;display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#18c99a,#8a70ff);display:grid;place-items:center;color:white}
+a,button{font:inherit}a{color:var(--accent)}main{max-width:900px;margin:32px auto;padding:0 18px 50px}.hero{padding:clamp(22px,5vw,42px);border-radius:24px;background:linear-gradient(135deg,#e3f7f0,#eeeaff);margin-bottom:22px}.eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.12em;color:#087f68}.hero h1{font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.12;margin:.5rem 0}.hero p{max-width:680px;color:#45566c}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px}.card h2{font-size:1.08rem;margin:.2rem 0 .6rem}.card p{color:var(--muted);margin:0}.note{padding:16px;border-left:4px solid #087f68;background:var(--surface);border-radius:12px;margin-top:20px}button:focus-visible,a:focus-visible{outline:3px solid #e7a52b;outline-offset:3px}
+</style>
+</head>
+<body>
+<header><div class="brand"><span class="logo" aria-hidden="true">ae</span><span>ae-MBPK <small style="display:block;font-size:.75rem;font-weight:500;color:var(--muted)">Pengalaman pembelajaran inklusif</small></span></div><a href="/">Kembali ke pusat permainan</a></header>
+<main>
+<section class="hero"><div class="eyebrow">PENGALAMAN SEJAGAT</div><h1>Permainan yang boleh disesuaikan untuk anda.</h1><p>Setiap murid mempunyai keperluan yang berbeza. Gunakan tetapan ini untuk menyesuaikan paparan, saiz teks, gerakan dan audio. Tiada satu profil yang sesuai untuk semua.</p><button type="button" id="open-settings" style="border:0;border-radius:12px;background:#087f68;color:#fff;font-weight:750;padding:12px 18px;min-height:46px">Buka tetapan aksesibiliti</button></section>
+<section class="cards" aria-label="Pilihan aksesibiliti">
+<div class="card"><h2>Penglihatan dan bacaan</h2><p>Saiz teks boleh laras, mod gelap, kontras tinggi dan sasaran sentuh yang lebih besar.</p></div>
+<div class="card"><h2>Pergerakan dan rangsangan</h2><p>Kurangkan animasi dan hiasan untuk pengalaman yang lebih tenang.</p></div>
+<div class="card"><h2>Pendengaran dan audio</h2><p>Mod senyap disokong oleh sebutan suara dalam modul yang telah diintegrasikan. Kandungan penting masih dipaparkan secara visual.</p></div>
+<div class="card"><h2>Privasi</h2><p>Tetapan disimpan pada peranti ini sahaja. Ia tidak disegerakkan ke akaun guru dan tidak mengandungi nama, kelas atau diagnosis.</p></div>
+</section>
+<div class="note"><strong>Nota untuk guru:</strong> berbincang dengan murid tentang tetapan yang membantu mereka. Jangan menetapkan keperluan berdasarkan diagnosis semata-mata. Semak semula pilihan bersama murid secara berkala.</div>
+</main>
+<script type="module" src="/src/accessibility-profile.js"></script>
+<script type="module">
+document.getElementById("open-settings").addEventListener("click",()=>{const launcher=document.getElementById("ae-a11y-launcher");if(launcher)launcher.click();});
+</script>
+</body></html>

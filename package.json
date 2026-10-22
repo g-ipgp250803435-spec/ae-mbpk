@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:release": "node scripts/prepublish-check.mjs",
+    "check:a11y:static": "node scripts/accessibility-static-check.mjs",
+    "check:games": "node scripts/check-learning-games.mjs",
+    "check:added-games": "node scripts/check-added-games.mjs",
+    "check:progress": "node scripts/check-learning-center-progress.mjs",
+    "check:ui": "node scripts/check-learning-center-ui.mjs",
+    "check:resources": "node scripts/check-resource-centre.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.0"
